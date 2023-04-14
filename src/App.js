@@ -64,6 +64,7 @@ function App() {
   const deleteMovie = async (id) => {
     const movieDoc = doc(db, "movies", id);
     await deleteDoc(movieDoc);
+    getMovieList();
   };
 
   const updateMovieTitle = async (id) => {
