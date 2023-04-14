@@ -36,7 +36,6 @@ function App() {
         ...doc.data(),
         id: doc.id,
       }));
-      console.log('filteredData', filteredData)
       setMovieList(filteredData);
     } catch (err) {
       console.error(err);
