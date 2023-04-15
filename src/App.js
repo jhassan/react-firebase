@@ -9,6 +9,13 @@ import {
   deleteDoc,
   updateDoc,
   doc,
+  collectionGroup,
+  query,
+  orderBy,
+  limit,
+  onSnapshot,
+  startAfter,
+  endBefore 
 } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
 
@@ -27,25 +34,38 @@ function App() {
   // File Upload State
   const [fileUpload, setFileUpload] = useState(null);
 
+  const [page, setPage] = useState(1);
+
   const moviesCollectionRef = collection(db, "movies");
 
+  const PAGE_SIZE = 3;
+  const [lastVisible, setLastVisible] = useState(0);
+  const [firstVisible, setFirstVisible] = useState(0);
+
   const getMovieList = async () => {
-    try {
-      const data = await getDocs(moviesCollectionRef);
-      const filteredData = data.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      }));
-      setMovieList(filteredData);
-    } catch (err) {
-      console.error(err);
-    }
+    const q = query(
+      collectionGroup(db, "movies"),
+      orderBy("newMovieTitle", "asc"),
+      limit(PAGE_SIZE)
+    );
+    onSnapshot(q, (documents) => {
+      const tempPosts = [];
+      documents.forEach((document) => {
+        tempPosts.push({
+          id: document.id,
+          ...document.data(),
+        });
+      });
+      setMovieList(tempPosts);
+      setLastVisible(documents.docs[documents.docs.length - 1]);
+      setFirstVisible(documents.docs[0]);
+    });
   };
 
   useEffect(() => {
     getMovieList();
   }, []);
-
+  // console.log('auth?.currentUser?.uid', auth?.currentUser?.uid)
   const onSubmitMovie = async () => {
     try {
       await addDoc(moviesCollectionRef, {
@@ -54,22 +74,71 @@ function App() {
         isNewMovieOscar: isNewMovieOscar,
         userId: auth?.currentUser?.uid,
       });
-      getMovieList();
+      // getMovieList();
     } catch (err) {
       console.error(err);
     }
   };
 
+  const nextPage = async () => {
+    const postsRef = collectionGroup(db, "movies");
+    const q = query(
+      postsRef,
+      orderBy("newMovieTitle", "asc"),
+      startAfter(lastVisible),
+      limit(PAGE_SIZE)
+    );
+    const documents = await getDocs(q);
+    // console.log('documents', documents)
+    onSnapshot(q, (documents) => {
+      const tempPosts = [];
+      documents.forEach((document) => {
+        tempPosts.push({
+          id: document.id,
+          ...document.data(),
+        });
+      });
+      setMovieList(tempPosts);
+      setLastVisible(documents.docs[documents.docs.length - 1]);
+      setFirstVisible(documents.docs[0]);
+    });
+    // setMovieList(documents);
+  };
+
+  const previousPage = async () => {
+    // console.log('pre firstVisible', firstVisible)
+    const postsRef = collectionGroup(db, "movies");
+    const q = query(
+      postsRef,
+      orderBy("newMovieTitle", "asc"),
+      endBefore(firstVisible),
+      limit(PAGE_SIZE)
+    );
+    const documents = await getDocs(q);
+    onSnapshot(q, (documents) => {
+      const tempPosts = [];
+      documents.forEach((document) => {
+        tempPosts.push({
+          id: document.id,
+          ...document.data(),
+        });
+      });
+      setMovieList(tempPosts);
+      setLastVisible(documents.docs[documents.docs.length - 1]);
+      setFirstVisible(documents.docs[0]);
+    });
+  };
+
   const deleteMovie = async (id) => {
     const movieDoc = doc(db, "movies", id);
     await deleteDoc(movieDoc);
-    getMovieList();
+    // getMovieList();
   };
 
   const updateMovieTitle = async (id) => {
     const movieDoc = doc(db, "movies", id);
     await updateDoc(movieDoc, { newMovieTitle: updatedTitle });
-    getMovieList();
+    // getMovieList();
   };
 
   const uploadFile = async () => {
@@ -84,7 +153,7 @@ function App() {
 
   return (
     <div className="App">
-      <Auth />
+      <Auth auth={auth} />
 
       <div>
         <input
@@ -112,7 +181,7 @@ function App() {
             </h1>
             <p> Date: {movie.newReleaseDate} </p>
 
-            <button onClick={() => deleteMovie(movie.id)}> Delete Movie</button>
+            {/* <button onClick={() => deleteMovie(movie.id)}> Delete Movie</button>
 
             <input
               placeholder="new title..."
@@ -121,15 +190,17 @@ function App() {
             <button onClick={() => updateMovieTitle(movie.id)}>
               {" "}
               Update Title
-            </button>
+            </button> */}
           </div>
         ))}
+        <button onClick={() => previousPage()}> Previous</button>
+        <button onClick={() => nextPage()}> Next</button>
       </div>
 
-      <div>
+      {/* <div>
         <input type="file" onChange={(e) => setFileUpload(e.target.files[0])} />
         <button onClick={uploadFile}> Upload File </button>
-      </div>
+      </div> */}
     </div>
   );
 }
