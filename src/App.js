@@ -66,6 +66,7 @@ function App() {
     getMovieList();
   }, []);
   // console.log('auth?.currentUser?.uid', auth?.currentUser?.uid)
+  // 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
   const onSubmitMovie = async () => {
     try {
       await addDoc(moviesCollectionRef, {
