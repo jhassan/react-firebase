@@ -13,7 +13,7 @@ import {
 import { ref, uploadBytes } from "firebase/storage";
 
 function App() {
-  // console.log('auth', auth.currentUser.email)
+  console.log('auth', auth?.currentUser?.email)
   const [movieList, setMovieList] = useState([]);
 
   // New Movie States
@@ -84,7 +84,7 @@ function App() {
 
   return (
     <div className="App">
-      <Auth />
+      {/* <Auth /> */}
 
       <div>
         <input
